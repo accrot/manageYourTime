@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Cours et Séances</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-color: #1f2937;
+            --border-color: #e5e7eb;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1150px;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 1.75rem;
+            color: var(--primary);
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .form-group input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus {
+            border-color: var(--primary);
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            background: #eef2ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+
+        th {
+            background-color: #f9fafb;
+            font-weight: 600;
+            color: #4b5563;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .btn-delete {
+            background-color: var(--danger);
+            padding: 6px 12px;
+            font-size: 0.875rem;
+        }
+
+        .btn-delete:hover {
+            background-color: var(--danger-hover);
+        }
+
+        .checkbox-grid {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            flex-wrap: wrap;
+            max-width: 180px;
+            margin: 0 auto;
+        }
+
+        .checkbox-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 0.7rem;
+            color: #6b7280;
+        }
+
+        input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .badge-total {
+            background-color: #e0e7ff;
+            color: #3730a3;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #9ca3af;
+            font-style: italic;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Gestionnaire de Cours & Séances</h1>
+
+        <!-- Formulaire d'ajout -->
+        <div class="form-group">
+            <input type="text" id="courseName" placeholder="Nom du cours (ex: Mathématiques)" autocomplete="off">
+            <input type="number" id="courseHours" placeholder="Nombre d'heures initial" min="1">
+            <button id="addBtn">Ajouter le cours</button>
+        </div>
+
+        <!-- Section des totaux globaux -->
+        <div class="stats">
+            <div>Total général des heures de départ : <span id="totalHours">0</span> h</div>
+            <div>Total des cours : <span id="totalCourses">0</span></div>
+        </div>
+
+        <!-- Tableau des cours -->
+        <table>
+            <thead>
+                <tr>
+                    <th>Nom du cours</th>
+                    <th>Heures</th>
+                    <th>Heures / 8</th>
+                    <th class="text-center">Séances 8h (1 à 6)</th>
+                    <th class="text-center">Séances 4h (1 à 6)</th>
+                    <th class="text-center">Heures additionnées (par cases)</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="courseTableBody">
+                <!-- Les lignes s'ajouteront dynamiquement ici -->
+            </tbody>
+        </table>
+        <div id="emptyState" class="empty-state">Aucun cours ajouté pour le moment.</div>
+    </div>
+
+    <script>
+        const courseNameInput = document.getElementById('courseName');
+        const courseHoursInput = document.getElementById('courseHours');
+        const addBtn = document.getElementById('addBtn');
+        const courseTableBody = document.getElementById('courseTableBody');
+        const totalHoursSpan = document.getElementById('totalHours');
+        const totalCoursesSpan = document.getElementById('totalCourses');
+        const emptyState = document.getElementById('emptyState');
+
+        // Charger les cours sauvegardés depuis le localStorage (ou tableau vide si rien)
+        let courses = JSON.parse(localStorage.getItem('saved_courses')) || [];
+
+        // Fonction pour sauvegarder dans le localStorage
+        function saveCourses() {
+            localStorage.setItem('saved_courses', JSON.stringify(courses));
+        }
+
+        function updateUI() {
+            courseTableBody.innerHTML = '';
+            
+            if (courses.length === 0) {
+                emptyState.style.display = 'block';
+            } else {
+                emptyState.style.display = 'none';
+            }
+
+            let totalH = 0;
+
+            courses.forEach((course, index) => {
+                totalH += course.hours;
+
+                const tr = document.createElement('tr');
+
+                let checkedHoursSum = 0;
+                
+                // Génération des 6 cases pour les 8h
+                let checkboxes8Html = '<div class="checkbox-grid">';
+                for (let i = 0; i < 6; i++) {
+                    if (course.check8[i]) {
+                        checkedHoursSum += 8;
+                    }
+                    checkboxes8Html += `
+                        <div class="checkbox-container">
+                            <span>S${i+1}</span>
+                            <input type="checkbox" ${course.check8[i] ? 'checked' : ''} onchange="toggleCheck(${index}, 'check8', ${i})">
+                        </div>`;
+                }
+                checkboxes8Html += '</div>';
+
+                // Génération des 6 cases pour les 4h
+                let checkboxes4Html = '<div class="checkbox-grid">';
+                for (let i = 0; i < 6; i++) {
+                    if (course.check4[i]) {
+                        checkedHoursSum += 4;
+                    }
+                    checkboxes4Html += `
+                        <div class="checkbox-container">
+                            <span>S${i+1}</span>
+                            <input type="checkbox" ${course.check4[i] ? 'checked' : ''} onchange="toggleCheck(${index}, 'check4', ${i})">
+                        </div>`;
+                }
+                checkboxes4Html += '</div>';
+
+                tr.innerHTML = `
+                    <td><strong>${escapeHtml(course.name)}</strong></td>
+                    <td>${course.hours} h</td>
+                    <td><strong>${course.dividedBy8}</strong></td>
+                    <td class="text-center">${checkboxes8Html}</td>
+                    <td class="text-center">${checkboxes4Html}</td>
+                    <td class="text-center">
+                        <span class="badge-total">${checkedHoursSum} h</span>
+                    </td>
+                    <td class="text-center">
+                        <button class="btn-delete" onclick="deleteCourse(${index})">Supprimer</button>
+                    </td>
+                `;
+
+                courseTableBody.appendChild(tr);
+            });
+
+            totalHoursSpan.textContent = totalH;
+            totalCoursesSpan.textContent = courses.length;
+        }
+
+        function addCourse() {
+            const name = courseNameInput.value.trim();
+            const hours = parseFloat(courseHoursInput.value);
+
+            if (!name || isNaN(hours) || hours <= 0) {
+                alert('Veuillez entrer un nom de cours valide et un nombre d\'heures positif.');
+                return;
+            }
+
+            const dividedBy8 = (hours / 8).toFixed(2);
+
+            courses.push({
+                name: name,
+                hours: hours,
+                dividedBy8: dividedBy8,
+                check8: [false, false, false, false, false, false],
+                check4: [false, false, false, false, false, false]
+            });
+
+            saveCourses(); // Sauvegarde après ajout
+            courseNameInput.value = '';
+            courseHoursInput.value = '';
+            courseNameInput.focus();
+
+            updateUI();
+        }
+
+        function deleteCourse(index) {
+            courses.splice(index, 1);
+            saveCourses(); // Sauvegarde après suppression
+            updateUI();
+        }
+
+        function toggleCheck(courseIndex, field, sessionIndex) {
+            courses[courseIndex][field][sessionIndex] = !courses[courseIndex][field][sessionIndex];
+            saveCourses(); // Sauvegarde après modification des cases
+            updateUI();
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+
+        addBtn.addEventListener('click', addCourse);
+        courseHoursInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addCourse();
+        });
+        courseNameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addCourse();
+        });
+
+        // Affichage initial au chargement de la page
+        updateUI();
+    </script>
+</body>
+</html>
